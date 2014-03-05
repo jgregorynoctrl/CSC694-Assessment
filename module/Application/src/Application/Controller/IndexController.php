@@ -16,10 +16,8 @@ use Zend\Authentication\AuthenticationService;
 use Zend\Authentication\Adapter\Ldap as AuthAdapter;
 use Zend\Config\Reader\Ini as ConfigReader;
 use Zend\Config\Config;
-use Zend\Log\Logger;
-use Zend\Log\Writer\Stream as LogWriter;
-use Zend\Log\Filter\Priority as LogFilter;
-
+use Zend\Ldap\Ldap;
+use Zend\Session\Container;
 
 class IndexController extends AbstractActionController
 {
@@ -32,24 +30,22 @@ class IndexController extends AbstractActionController
     
     public function authenticateAction()
     {
-        $form = new LoginForm();
         $request = $this->getRequest();
         
         if ($request->isPost()) {
             $username = $request->getPost('userName', null);
             $password = $request->getPost('password', null);
         }
-        
-        $auth = new AuthenticationService();
-
+     
+        //this code reads the configuration file for the LDAP server
         $configReader = new ConfigReader();
         $configData = $configReader->fromFile('ldap-config.ini');
-        $config = new Config($configData, true);
-        
-        //$log_path = $config->production->ldap->log_path;
+        $config = new Config($configData, true);        
         $options = $config->production->ldap->toArray();
         unset($options['log_path']);
         
+        //this sets up the adapter to talk to the LDAP server
+        $auth = new AuthenticationService();
         $adapter = new AuthAdapter($options,
                                    $username,
                                    $password);
@@ -57,11 +53,39 @@ class IndexController extends AbstractActionController
         $result = $auth->authenticate($adapter);
         
         $messages = $result->getMessages();
-        var_dump($messages);
-        exit();
+        
+        foreach ($messages as $message) {
+            var_dump($message);
+            echo '<br>';
+        }
+        
+        $ldap = new Zend\Ldap\Ldap($options);
+        //var_dump($ldap);
+        
+        //$schema = $auth->getSchema();
+        
+        
+        
+        
+        
+        $container = new Container('namespace');
+        $container->usedID = 'Test ID';
+        $container->role = 2;
+        $container->userEmail = 'testID@foo.com';   
+        $container->logged_in = 'Y';
+
+        //foreach ($container as $content)
+        //    var_dump($content);
+
+
+        $this->ShowContainer();
+        exit();        
+    }
+    
+    public function ShowContainer()
+    {
+        
+        $container = new Container('namespace');
+        
     }
 }
-
-
-//var_dump($request);
-        //exit();
